@@ -1,8 +1,9 @@
 import flet as ft
 from date_piker import DatePiker
+import google_register
 
 WEEKS = ["月", "火", "水", "木", "金", "土", "日"]
-all_data = {}
+schedules = {}
 
 
 def main(page: ft.Page):
@@ -12,8 +13,7 @@ def main(page: ft.Page):
             page.update()
 
         def register(e):
-            print(all_data)
-
+            google_register.register(schedules, datepiker.selected_date)
             close_dlg(e)
 
         dlg_modal = ft.AlertDialog(
@@ -82,8 +82,8 @@ def main(page: ft.Page):
 
 
 def all_clear(e):
-    global all_data
-    all_data = {}
+    global schedules
+    schedules = {}
 
 
 def on_hover(e):
@@ -140,7 +140,7 @@ def create_dlg_modal(page: ft.Page, col):
 
     def register(e):
         col[1] = ft.Text(f"{lecture_title.value}\n{place.value}")
-        all_data[col0] = [lecture_title.value, place.value]
+        schedules[col0] = [lecture_title.value, place.value]
         close_dlg(e)
 
     def on_keyboard(e: ft.KeyboardEvent):

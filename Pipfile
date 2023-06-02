@@ -7,6 +7,8 @@ name = "pypi"
 flet = "*"
 black = "*"
 python-dateutil = "*"
+google-api-python-client = "*"
+google-auth = "*"
 
 [dev-packages]
 
