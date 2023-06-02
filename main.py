@@ -1,4 +1,5 @@
 import flet as ft
+from date_piker import DatePiker
 
 WEEKS = ["月", "火", "水", "木", "金", "土", "日"]
 all_data = {}
@@ -12,6 +13,7 @@ def main(page: ft.Page):
 
         def register(e):
             print(all_data)
+
             close_dlg(e)
 
         dlg_modal = ft.AlertDialog(
@@ -27,6 +29,45 @@ def main(page: ft.Page):
         dlg_modal.open = True
         page.update()
 
+    def btn_calender_clicked(e):
+        card.visible = not card.visible
+        page.update()
+
+    def date_selected():
+        tf_date.value = datepiker.selected_date.strftime("%Y/%m/%d")
+        card.visible = False
+        page.update()
+
+    # I/O Controls
+    tf_date = ft.TextField()
+    btn_calender = ft.IconButton(
+        icon=ft.icons.CALENDAR_TODAY, on_click=btn_calender_clicked
+    )
+    datepiker = DatePiker(on_selected=date_selected)
+    card = ft.Card(
+        ft.Container(
+            datepiker,
+            margin=10,
+            width=300,
+        ),
+        visible=True,
+    )
+
+    # Page レイアウト
+    page.add(
+        ft.Column(
+            [
+                ft.Text("予定開始日"),
+                ft.Row(
+                    [
+                        btn_calender,
+                        tf_date,
+                    ]
+                ),
+                card,
+            ]
+        )
+    )
     page.scroll = ft.ScrollMode.AUTO
     page.add(
         ft.Column(controls=items(page)),
