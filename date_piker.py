@@ -6,19 +6,13 @@ import itertools
 
 
 class DatePiker(ft.UserControl):
-    """日付選択"""
-
     def __init__(self, on_selected=None):
         super().__init__()
-        # 初期値の日付
         self.default_date = datetime.date.today()
-        # カレンダー表示年月
         self.yearmonth: datetime = datetime.date(
             self.default_date.year, self.default_date.month, 1
         )
-        # 選択している日付
         self.selected_date: datetime = self.default_date
-        # 日付選択時の処理
         self.on_selected = on_selected
 
     def build(self):
@@ -181,7 +175,6 @@ def main(page: ft.Page):
         card.visible = False
         page.update()
 
-    # I/O Controls
     tf_date = ft.TextField()
     btn_calender = ft.IconButton(
         icon=ft.icons.CALENDAR_TODAY, on_click=btn_calender_clicked
@@ -196,7 +189,6 @@ def main(page: ft.Page):
         visible=True,
     )
 
-    # Page レイアウト
     page.theme_mode = ft.ThemeMode.LIGHT
     page.add(
         ft.Column(
