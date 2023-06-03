@@ -9,6 +9,7 @@ black = "*"
 python-dateutil = "*"
 google-api-python-client = "*"
 google-auth = "*"
+auto-py-to-exe = "*"
 
 [dev-packages]
 
