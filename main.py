@@ -31,28 +31,83 @@ def main(page: ft.Page):
     )
     register_modal = RegisterModal(page, datepicker)
     page.scroll = ft.ScrollMode.AUTO
+    setting = Setting(page)
+
     page.add(
-        ft.Column(
-            [
-                ft.Text("予定開始日"),
-                ft.Row(
-                    [
-                        btn_calender,
-                        tf_date,
-                    ]
+        ft.Tabs(
+            selected_index=0,
+            animation_duration=300,
+            tabs=[
+                ft.Tab(
+                    text="予定入力",
+                    content=ft.Column(
+                        [
+                            ft.Column(
+                                [
+                                    ft.Text("予定開始日"),
+                                    ft.Row(
+                                        [
+                                            btn_calender,
+                                            tf_date,
+                                        ]
+                                    ),
+                                    card,
+                                ]
+                            ),
+                            ft.Column(controls=Timetable(page).get()),
+                            ft.Row(
+                                [
+                                    ft.ElevatedButton(
+                                        "Googleカレンダーに登録", on_click=register_modal.open
+                                    ),
+                                    # ft.ElevatedButton("全削除", on_click=all_clear, color=ft.colors.RED),
+                                ],
+                                alignment=ft.MainAxisAlignment.CENTER,
+                            ),
+                        ]
+                    ),
                 ),
-                card,
-            ]
-        ),
-        ft.Column(controls=Timetable(page).get()),
-        ft.Row(
-            [
-                ft.ElevatedButton("Googleカレンダーに登録", on_click=register_modal.open),
-                # ft.ElevatedButton("全削除", on_click=all_clear, color=ft.colors.RED),
+                ft.Tab(text="設定", icon=ft.icons.SETTINGS, content=setting.get()),
             ],
-            alignment=ft.MainAxisAlignment.CENTER,
-        ),
+        )
     )
+
+
+class Setting:
+    def __init__(self, page):
+        self.page = page
+        self.gmail = ft.TextField(label="Gmail")
+        self.gmail.value = page.client_storage.get("gmail")
+        pick_files_dialog = ft.FilePicker(on_result=self.pick_files_result)
+        self.selected_files = ft.Text()
+        self.selected_files.value = page.client_storage.get("credentials_path")
+        self.setting = ft.Column(
+            [
+                self.gmail,
+                ft.ElevatedButton(
+                    "認証ファイルを選択",
+                    icon=ft.icons.UPLOAD_FILE,
+                    on_click=lambda _: pick_files_dialog.pick_files(),
+                ),
+                self.selected_files,
+                ft.ElevatedButton("登録", on_click=self.add_setting),
+            ]
+        )
+
+        page.overlay.append(pick_files_dialog)
+
+    def add_setting(self, e):
+        self.page.client_storage.set("gmail", self.gmail.value)
+        self.page.client_storage.set("credentials_path", self.selected_files.value)
+
+    def pick_files_result(self, e: ft.FilePickerResultEvent):
+        if not e.files:
+            return
+        self.selected_files.value = e.files[0].path
+        self.selected_files.update()
+
+    def get(self):
+        return self.setting
 
 
 class RegisterModal:
@@ -66,7 +121,11 @@ class RegisterModal:
             self.page.update()
 
         def register(e):
-            google_register.register(schedules, self.datepicker.selected_date)
+            gmail = self.page.client_storage.get("gmail")
+            credentials_path = self.page.client_storage.get("credentials_path")
+            google_register.register(
+                schedules, self.datepicker.selected_date, gmail, credentials_path
+            )
             close_dlg(e)
 
         dlg_modal = ft.AlertDialog(

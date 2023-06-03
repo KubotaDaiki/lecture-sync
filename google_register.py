@@ -4,10 +4,9 @@ import google.auth
 from datetime import datetime, date, time, timedelta
 
 
-def register(schedules, date):
+def register(schedules, date, calendar_id, credentials_path):
     SCOPES = ["https://www.googleapis.com/auth/calendar"]
-    calendar_id = "kubotadaiki0654@gmail.com"
-    gapi_creds = google.auth.load_credentials_from_file("credentials.json", SCOPES)[0]
+    gapi_creds = google.auth.load_credentials_from_file(credentials_path, SCOPES)[0]
     service = googleapiclient.discovery.build("calendar", "v3", credentials=gapi_creds)
 
     start_time = [
@@ -49,5 +48,4 @@ def register(schedules, date):
             "location": value[1],
             "recurrence": ["RRULE:FREQ=WEEKLY"],
         }
-        print(event)
-        # event = service.events().insert(calendarId=calendar_id, body=event).execute()
+        event = service.events().insert(calendarId=calendar_id, body=event).execute()
