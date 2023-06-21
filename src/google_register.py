@@ -7,7 +7,9 @@ from datetime import datetime, date, time, timedelta
 def register(schedules, date, calendar_id, credentials_path):
     SCOPES = ["https://www.googleapis.com/auth/calendar"]
     gapi_creds = google.auth.load_credentials_from_file(credentials_path, SCOPES)[0]
-    service = googleapiclient.discovery.build("calendar", "v3", credentials=gapi_creds)
+    service = googleapiclient.discovery.build(
+        "calendar", "v3", credentials=gapi_creds, static_discovery=False
+    )
 
     start_time = [
         {"hour": 9, "minute": 10},
