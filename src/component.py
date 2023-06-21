@@ -165,9 +165,6 @@ class DatePiker(ft.UserControl):
             ]
         )
 
-    def update(self):
-        super().update()
-
 
 class SettingGmail(ft.UserControl):
     def __init__(self, gmail: str):
@@ -194,7 +191,7 @@ class SettingGmail(ft.UserControl):
 
 
 class SettingCredentialsPath(ft.UserControl):
-    def __init__(self, credentials_path, on_click):
+    def __init__(self, credentials_path):
         """設定タブの認証情報欄のためのコンポーネント
 
         Parameters
@@ -206,7 +203,7 @@ class SettingCredentialsPath(ft.UserControl):
         """
         super().__init__()
         self.selected_files = ft.Text(value=credentials_path)
-        self.pick_files_dialog = ft.FilePicker(on_result=on_click)
+        self.pick_files_dialog = ft.FilePicker(on_result=self.pick_files_result)
 
     def build(self):
         return ft.Column(
@@ -219,6 +216,12 @@ class SettingCredentialsPath(ft.UserControl):
                 self.selected_files,
             ]
         )
+
+    def pick_files_result(self, e: ft.FilePickerResultEvent):
+        if not e.files:
+            return
+        self.value = e.files[0].path
+        self.update()
 
     @property
     def value(self):
@@ -263,7 +266,7 @@ class Timetable(ft.UserControl):
         self.dlg_modal.column = e.control.content.controls
         self.dlg_modal.content = e.control.content
         self.dlg_modal.alert.open = True
-        self.open_dlg()
+        self.open_dlg(self.dlg_modal, self.dlg_modal.on_keyboard)
 
     def build(self):
         def on_hover(e):
@@ -316,7 +319,7 @@ class InputModal(ft.UserControl):
     def __init__(self):
         super().__init__()
         self.column = []
-        self.content=[]
+        self.content = []
         self.alert = ft.AlertDialog(
             modal=True,
             title=ft.Text("Please confirm"),
@@ -384,14 +387,14 @@ class RegisterModal(ft.UserControl):
 
     def close_dlg(self, e):
         self.dlg_modal.open = False
-        self.dlg_modal.update()
+        self.update()
 
     def register(self, e):
         google_register.register(
             schedules,
             self.datepicker.selected_date,
-            self.gmail,
-            self.credentials_path,
+            self.gmail_value,
+            self.credentials_path_value,
         )
         self.close_dlg(e)
 
@@ -399,5 +402,7 @@ class RegisterModal(ft.UserControl):
         return self.dlg_modal
 
     def open(self, e):
+        self.gmail_value = self.gmail.value
+        self.credentials_path_value = self.credentials_path.value
         self.dlg_modal.open = True
-        self.open_dlg()
+        self.open_dlg(self.dlg_modal)

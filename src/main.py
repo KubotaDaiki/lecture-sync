@@ -12,17 +12,12 @@ def main(page: ft.Page):
         card.visible = False
         page.update()
 
-    def pick_files_result(e: ft.FilePickerResultEvent):
-        if not e.files:
-            return
-        setting_credentials_path.value = e.files[0].path
-        setting_credentials_path.update()
+    def set_client_storage(e):
+        if page.client_storage:
+            page.client_storage.set("gmail", setting_gmail.value)
+            page.client_storage.set("credentials_path", setting_credentials_path.value)
 
-    def add_settings(e):
-        page.client_storage.set("gmail", setting_gmail.value)
-        page.client_storage.set("credentials_path", setting_credentials_path.value)
-
-    def get_client_storage_data(get_list):
+    def get_client_storage(get_list):
         storage_data = {}
         if page.client_storage:
             for get_data in get_list:
@@ -32,13 +27,10 @@ def main(page: ft.Page):
                 storage_data[get_data] = None
         return storage_data
 
-    def open_dlg():
-        page.on_keyboard_event = timetable.dlg_modal.on_keyboard
-        page.dialog = timetable.dlg_modal
-        page.update()
-
-    def open_dlg2():
-        page.dialog = register_modal.dlg_modal
+    def open_dlg(dlg, on_keyboard=None):
+        if on_keyboard is not None:
+            page.on_keyboard_event = on_keyboard
+        page.dialog = dlg
         page.update()
 
     tf_date = ft.TextField()
@@ -67,21 +59,19 @@ def main(page: ft.Page):
         ]
     )
 
-    storage_data = get_client_storage_data(["gmail", "credentials_path"])
+    storage_data = get_client_storage(["gmail", "credentials_path"])
+
     setting_gmail = SettingGmail(storage_data["gmail"])
-    setting_credentials_path = SettingCredentialsPath(
-        storage_data["credentials_path"], pick_files_result
-    )
+    setting_credentials_path = SettingCredentialsPath(storage_data["credentials_path"])
     page.overlay.append(setting_credentials_path.pick_files_dialog)
-    setting_tab = SettingTab([setting_gmail, setting_credentials_path], add_settings)
 
     timetable = Timetable(open_dlg)
 
     register_modal = RegisterModal(
         datepicker,
-        storage_data["gmail"],
-        storage_data["credentials_path"],
-        open_dlg2,
+        setting_gmail,
+        setting_credentials_path,
+        open_dlg,
     )
     page.overlay.append(register_modal)
 
@@ -103,7 +93,17 @@ def main(page: ft.Page):
                         scroll="AUTO",
                     ),
                 ),
-                ft.Tab(text="設定", icon=ft.icons.SETTINGS, content=setting_tab),
+                ft.Tab(
+                    text="設定",
+                    icon=ft.icons.SETTINGS,
+                    content=SettingTab(
+                        [
+                            setting_gmail,
+                            setting_credentials_path,
+                        ],
+                        set_client_storage,
+                    ),
+                ),
             ],
             expand=1,
         )
