@@ -3,4 +3,5 @@ credentials.json
 .venv
 build
 dist
-main.spec
+LectureSync.spec
+icon
