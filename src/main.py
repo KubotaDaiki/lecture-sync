@@ -83,6 +83,8 @@ def main(page: ft.Page):
         storage_data["credentials_path"],
         open_dlg2,
     )
+    page.overlay.append(register_modal)
+
     page.add(
         ft.Tabs(
             selected_index=0,

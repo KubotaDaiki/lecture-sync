@@ -261,6 +261,7 @@ class Timetable(ft.UserControl):
     def open_dlg_modal(self, e):
         self.dlg_modal = InputModal()
         self.dlg_modal.column = e.control.content.controls
+        self.dlg_modal.content = e.control.content
         self.dlg_modal.alert.open = True
         self.open_dlg()
 
@@ -315,6 +316,7 @@ class InputModal(ft.UserControl):
     def __init__(self):
         super().__init__()
         self.column = []
+        self.content=[]
         self.alert = ft.AlertDialog(
             modal=True,
             title=ft.Text("Please confirm"),
@@ -323,7 +325,7 @@ class InputModal(ft.UserControl):
 
     def close_dlg(self, e):
         self.alert.open = False
-        self.alert.update()
+        self.update()
 
     def on_keyboard(self, e: ft.KeyboardEvent):
         if e.key == "Enter":
@@ -333,9 +335,9 @@ class InputModal(ft.UserControl):
 
     def register(self, e):
         self.column[1] = ft.Text(f"{self.lecture_title.value}\n{self.place.value}")
+        self.content.update()
         schedules[self.col0] = [self.lecture_title.value, self.place.value]
         self.close_dlg(e)
-        self.update()
 
     def build(self):
         self.col0 = self.column[0].value
