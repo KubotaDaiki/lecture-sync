@@ -33,10 +33,7 @@ def main(page: ft.Page):
         page.dialog = dlg
         page.update()
 
-    tf_date = ft.TextField()
-    btn_calender = ft.IconButton(
-        icon=ft.icons.CALENDAR_TODAY, on_click=btn_calender_clicked
-    )
+    tf_date = ft.TextField(label="予定開始日", on_focus=btn_calender_clicked, width=300)
     datepicker = DatePiker(on_selected=date_selected)
     card = ft.Card(
         ft.Container(
@@ -44,17 +41,11 @@ def main(page: ft.Page):
             margin=10,
             width=300,
         ),
-        visible=True,
+        visible=False,
     )
     calender_set = ft.Column(
         [
-            ft.Text("予定開始日"),
-            ft.Row(
-                [
-                    btn_calender,
-                    tf_date,
-                ]
-            ),
+            ft.Container(tf_date, margin=ft.margin.only(top=50, bottom=20)),
             card,
         ]
     )
@@ -64,6 +55,13 @@ def main(page: ft.Page):
     setting_gmail = SettingGmail(storage_data["gmail"])
     setting_credentials_path = SettingCredentialsPath(storage_data["credentials_path"])
     page.overlay.append(setting_credentials_path.pick_files_dialog)
+    setting_tab = SettingTab(
+        [
+            setting_gmail,
+            setting_credentials_path,
+        ],
+        set_client_storage,
+    )
 
     timetable = Timetable(open_dlg)
 
@@ -74,6 +72,8 @@ def main(page: ft.Page):
         open_dlg,
     )
     page.overlay.append(register_modal)
+
+    page.theme_mode = "light"
 
     page.add(
         ft.Tabs(
@@ -86,22 +86,37 @@ def main(page: ft.Page):
                         [
                             calender_set,
                             timetable,
-                            ft.ElevatedButton(
-                                "Googleカレンダーに登録", on_click=register_modal.open
+                            ft.Container(
+                                ft.ElevatedButton(
+                                    "Googleカレンダーに登録",
+                                    height=50,
+                                    width=300,
+                                    icon="calendar_month",
+                                    on_click=register_modal.open,
+                                    style=ft.ButtonStyle(
+                                        color={
+                                            ft.MaterialState.DEFAULT: ft.colors.WHITE,
+                                        },
+                                        bgcolor={
+                                            ft.MaterialState.DEFAULT: ft.colors.BLUE_700,
+                                            ft.MaterialState.HOVERED: ft.colors.BLUE_900,
+                                        },
+                                        shape=ft.RoundedRectangleBorder(radius=20),
+                                    ),
+                                ),
+                                margin=30,
                             ),
                         ],
                         scroll="AUTO",
+                        horizontal_alignment="CENTER",
                     ),
                 ),
                 ft.Tab(
                     text="設定",
                     icon=ft.icons.SETTINGS,
-                    content=SettingTab(
-                        [
-                            setting_gmail,
-                            setting_credentials_path,
-                        ],
-                        set_client_storage,
+                    content=ft.Container(
+                        setting_tab,
+                        margin=ft.margin.symmetric(vertical=40, horizontal=20),
                     ),
                 ),
             ],

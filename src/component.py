@@ -202,18 +202,20 @@ class SettingCredentialsPath(ft.UserControl):
             コンポーネントのボタンをクリックした時実行する関数
         """
         super().__init__()
-        self.selected_files = ft.Text(value=credentials_path)
+        self.selected_files = ft.TextField(label="認証情報", value=credentials_path)
         self.pick_files_dialog = ft.FilePicker(on_result=self.pick_files_result)
 
     def build(self):
         return ft.Column(
             [
+                self.selected_files,
                 ft.ElevatedButton(
                     "認証ファイルを選択",
                     icon=ft.icons.UPLOAD_FILE,
                     on_click=lambda _: self.pick_files_dialog.pick_files(),
+                    height=40,
+                    elevation=3,
                 ),
-                self.selected_files,
             ]
         )
 
@@ -233,7 +235,7 @@ class SettingCredentialsPath(ft.UserControl):
 
 
 class SettingTab(ft.UserControl):
-    def __init__(self, setting_list: list, add_settings):
+    def __init__(self, setting_list: list, set_storage):
         """設定タブコンポーネント
 
         Parameters
@@ -245,13 +247,48 @@ class SettingTab(ft.UserControl):
         """
         super().__init__()
         self.setting_list = setting_list
-        self.add_settings = add_settings
+        self.set_storage = set_storage
+
+    def add_setting(self, e):
+        self.button.text = "登録しました"
+        self.button.icon = "check"
+        self.update()
+        self.set_storage(e)
+
+    def default(self, e):
+        print(e.data)
+        if e.data:
+            self.button.text = "情報を登録"
+            self.button.icon = "save"
+            self.update()
 
     def build(self):
+        self.setting_list = [
+            ft.Container(setting, margin=ft.margin.only(bottom=30))
+            for setting in self.setting_list
+        ]
+        self.button = ft.ElevatedButton(
+            "情報を登録",
+            icon="save",
+            on_click=self.add_setting,
+            on_hover=self.default,
+            height=50,
+            width=200,
+            style=ft.ButtonStyle(
+                color={
+                    ft.MaterialState.DEFAULT: ft.colors.WHITE,
+                },
+                bgcolor={
+                    ft.MaterialState.DEFAULT: ft.colors.BLUE_700,
+                    ft.MaterialState.HOVERED: ft.colors.BLUE_900,
+                },
+                shape=ft.RoundedRectangleBorder(radius=20),
+            ),
+        )
         return ft.Column(
             [
                 *self.setting_list,
-                ft.ElevatedButton("登録", on_click=self.add_settings),
+                self.button,
             ]
         )
 
@@ -270,15 +307,25 @@ class Timetable(ft.UserControl):
 
     def build(self):
         def on_hover(e):
-            e.control.bgcolor = "blue" if e.data == "true" else ft.colors.BLACK26
+            e.control.bgcolor = ft.colors.BLUE if e.data == "true" else ft.colors.WHITE
             e.control.update()
 
         timetable = []
-        timetable.append(ft.Row([Card(ft.Text(week)) for week in ["", *WEEKS]]))
+        timetable.append(
+            ft.Row(
+                [
+                    Card(ft.Text(week, color=ft.colors.WHITE), bgcolor=ft.colors.BLUE_400)
+                    for week in ["", *WEEKS]
+                ],
+                alignment="CENTER",
+            )
+        )
 
         for i in range(5):
             rows = []
-            rows.append(Card(ft.Text(f"{i+1}限")))
+            rows.append(
+                Card(ft.Text(f"{i+1}限", color=ft.colors.WHITE), bgcolor=ft.colors.BLUE_400)
+            )
             for j in range(7):
                 rows.append(
                     Card(
@@ -293,22 +340,23 @@ class Timetable(ft.UserControl):
                         on_hover=on_hover,
                     )
                 )
-            timetable.append(ft.Row(rows))
+            timetable.append(ft.Row(rows, alignment="CENTER"))
         return ft.Column(controls=timetable)
 
 
 class Card(ft.UserControl):
-    def __init__(self, content, on_click=None, on_hover=None):
+    def __init__(self, content, on_click=None, on_hover=None, bgcolor=ft.colors.WHITE):
         super().__init__()
         self.card = ft.Container(
             content=content,
             alignment=ft.alignment.center,
             width=100,
             height=100,
-            bgcolor=ft.colors.BLACK26,
+            bgcolor=bgcolor,
             border_radius=ft.border_radius.all(5),
             on_click=on_click,
             on_hover=on_hover,
+            border=ft.border.all(1, ft.colors.BLUE_300),
         )
 
     def build(self):
