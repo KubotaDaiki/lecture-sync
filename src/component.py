@@ -379,8 +379,6 @@ class InputModal(ft.UserControl):
         self.update()
 
     def on_keyboard(self, e: ft.KeyboardEvent):
-        if e.key == "Enter":
-            self.register(e)
         if e.key == "Escape":
             self.close_dlg(e)
 
