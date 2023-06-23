@@ -256,7 +256,6 @@ class SettingTab(ft.UserControl):
         self.set_storage(e)
 
     def default(self, e):
-        print(e.data)
         if e.data:
             self.button.text = "情報を登録"
             self.button.icon = "save"
@@ -297,13 +296,13 @@ class Timetable(ft.UserControl):
     def __init__(self, open_dlg_modal):
         super().__init__()
         self.open_dlg = open_dlg_modal
+        self.dlg_modal = InputModal()
 
     def open_dlg_modal(self, e):
-        self.dlg_modal = InputModal()
         self.dlg_modal.column = e.control.content.controls
         self.dlg_modal.content = e.control.content
-        self.dlg_modal.alert.open = True
-        self.open_dlg(self.dlg_modal, self.dlg_modal.on_keyboard)
+        self.dlg_modal.open()
+        self.open_dlg(self.dlg_modal.alert, self.dlg_modal.on_keyboard)
 
     def build(self):
         def on_hover(e):
@@ -314,7 +313,9 @@ class Timetable(ft.UserControl):
         timetable.append(
             ft.Row(
                 [
-                    Card(ft.Text(week, color=ft.colors.WHITE), bgcolor=ft.colors.BLUE_400)
+                    Card(
+                        ft.Text(week, color=ft.colors.WHITE), bgcolor=ft.colors.BLUE_400
+                    )
                     for week in ["", *WEEKS]
                 ],
                 alignment="CENTER",
@@ -324,7 +325,10 @@ class Timetable(ft.UserControl):
         for i in range(5):
             rows = []
             rows.append(
-                Card(ft.Text(f"{i+1}限", color=ft.colors.WHITE), bgcolor=ft.colors.BLUE_400)
+                Card(
+                    ft.Text(f"{i+1}限", color=ft.colors.WHITE),
+                    bgcolor=ft.colors.BLUE_400,
+                )
             )
             for j in range(7):
                 rows.append(
@@ -350,8 +354,9 @@ class Card(ft.UserControl):
         self.card = ft.Container(
             content=content,
             alignment=ft.alignment.center,
-            width=100,
+            width=120,
             height=100,
+            padding=10,
             bgcolor=bgcolor,
             border_radius=ft.border_radius.all(5),
             on_click=on_click,
@@ -370,13 +375,17 @@ class InputModal(ft.UserControl):
         self.content = []
         self.alert = ft.AlertDialog(
             modal=True,
-            title=ft.Text("Please confirm"),
+            title=ft.Text("予定を入力"),
             actions_alignment=ft.MainAxisAlignment.END,
         )
+        self.alert.actions = [
+            ft.TextButton("登録", on_click=self.register),
+            ft.TextButton("キャンセル", on_click=self.close_dlg),
+        ]
 
     def close_dlg(self, e):
         self.alert.open = False
-        self.update()
+        self.alert.update()
 
     def on_keyboard(self, e: ft.KeyboardEvent):
         if e.key == "Escape":
@@ -389,6 +398,9 @@ class InputModal(ft.UserControl):
         self.close_dlg(e)
 
     def build(self):
+        return self.alert
+
+    def open(self):
         self.col0 = self.column[0].value
         self.lecture_title = ft.TextField(label="講義名", autofocus=True)
         self.place = ft.TextField(label="場所")
@@ -407,11 +419,6 @@ class InputModal(ft.UserControl):
             width=500,
             height=500,
         )
-        self.alert.actions = [
-            ft.TextButton("登録", on_click=self.register),
-            ft.TextButton("キャンセル", on_click=self.close_dlg),
-        ]
-        return self.alert
 
 
 class RegisterModal(ft.UserControl):

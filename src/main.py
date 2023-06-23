@@ -4,12 +4,11 @@ from component import *
 
 def main(page: ft.Page):
     def btn_calender_clicked(e):
-        card.visible = not card.visible
-        page.update()
+        open_dlg(card_modal)
 
     def date_selected():
         tf_date.value = datepicker.selected_date.strftime("%Y/%m/%d")
-        card.visible = False
+        card_modal.open = False
         page.update()
 
     def set_client_storage(e):
@@ -31,24 +30,40 @@ def main(page: ft.Page):
         if on_keyboard is not None:
             page.on_keyboard_event = on_keyboard
         page.dialog = dlg
+        dlg.open = True
         page.update()
 
-    tf_date = ft.TextField(label="予定開始日", on_focus=btn_calender_clicked, width=300)
+    btn_calender = ft.ElevatedButton(
+        text="予定開始日", on_click=btn_calender_clicked, width=200, height=50,icon="calendar_month"
+    )
+    tf_date = ft.TextField(width=300)
     datepicker = DatePiker(on_selected=date_selected)
     card = ft.Card(
         ft.Container(
             datepicker,
             margin=10,
             width=300,
+            height=330,
+        )
+    )
+    calender_set = ft.Container(
+        ft.Row(
+            [
+                btn_calender,
+                tf_date,
+            ],
+            alignment="CENTER",
         ),
-        visible=False,
+        margin=ft.margin.only(top=50, bottom=20),
     )
-    calender_set = ft.Column(
-        [
-            ft.Container(tf_date, margin=ft.margin.only(top=50, bottom=20)),
-            card,
-        ]
+    card_modal = ft.AlertDialog(
+        modal=True,
+        title=ft.Text("予定開始日を入力"),
+        content=card,
+        actions_alignment=ft.MainAxisAlignment.END,
+        content_padding=ft.padding.only(50, 20, 50, 20),
     )
+    page.overlay.append(card_modal)
 
     storage_data = get_client_storage(["gmail", "credentials_path"])
 
@@ -64,6 +79,7 @@ def main(page: ft.Page):
     )
 
     timetable = Timetable(open_dlg)
+    page.overlay.append(timetable.dlg_modal.alert)
 
     register_modal = RegisterModal(
         datepicker,
