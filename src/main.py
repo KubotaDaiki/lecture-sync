@@ -74,6 +74,8 @@ def main(page: ft.Page):
     page.overlay.append(register_modal)
 
     page.theme_mode = "light"
+    page.window_maximized = True
+    page.title = "Lecture Sync"
 
     page.add(
         ft.Tabs(
