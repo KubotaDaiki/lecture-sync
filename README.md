@@ -2,4 +2,4 @@
 
 大学などの時間割をGoogleカレンダーに簡単に登録するためのソフト。
 
-![top画像](img/top.png)
+<video src="assets/lecture_sync.mp4" controls title="Title"></video>
