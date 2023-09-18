@@ -373,9 +373,11 @@ class Card(ft.UserControl):
 class RegisterModal(ft.UserControl):
     def __init__(self, register, close_dlg):
         super().__init__()
+        self.pr = ft.ProgressRing(width=25, height=25, stroke_width=2, visible=False)
         self.modal = ft.AlertDialog(
             modal=True,
             title=ft.Text("Googleカレンダーに登録"),
+            content=ft.Column([self.pr], height=20, horizontal_alignment="CENTER"),
             actions=[
                 ft.TextButton("登録", on_click=register),
                 ft.TextButton("キャンセル", on_click=close_dlg),
@@ -419,13 +421,16 @@ class RegistrationButton(ft.UserControl):
         )
 
     def register_in_calendar(self, e):
+        self.register.pr.visible = True
+        self.register.update()
         self.register_(
             schedules,
             self.datepicker.selected_date,
             self.gmail_value,
             self.credentials_path_value,
         )
-        self.close_dlg()
+        self.close_dlg(e)
+        self.register.pr.visible = False
 
     def open_dlg(self, e):
         self.gmail_value = self.gmail.value
@@ -435,7 +440,7 @@ class RegistrationButton(ft.UserControl):
         self.register.modal.open = True
         self.register.modal.update()
 
-    def close_dlg(self):
+    def close_dlg(self, e):
         self.register.modal.open = False
         self.register.modal.update()
 
