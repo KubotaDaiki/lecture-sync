@@ -1,9 +1,12 @@
-import flet as ft
-import datetime
-from dateutil.relativedelta import relativedelta
 import calendar
 import itertools
-import google_register
+from datetime import time, timedelta, date, datetime
+
+import flet as ft
+import google.auth
+import googleapiclient.discovery
+from dateutil.relativedelta import relativedelta
+
 
 WEEKS = ["月", "火", "水", "木", "金", "土", "日"]
 schedules = {}
@@ -12,11 +15,9 @@ schedules = {}
 class DatePiker(ft.UserControl):
     def __init__(self, on_selected=None):
         super().__init__()
-        self.default_date = datetime.date.today()
-        self.yearmonth: datetime = datetime.date(
-            self.default_date.year, self.default_date.month, 1
-        )
-        self.selected_date: datetime = self.default_date
+        self.default_date = date.today()
+        self.yearmonth = date(self.default_date.year, self.default_date.month, 1)
+        self.selected_date = self.default_date
         self.on_selected = on_selected
 
     def build(self):
@@ -51,7 +52,7 @@ class DatePiker(ft.UserControl):
                     self.btn_days[idx].text = day
                     self.btn_days[idx].disabled = False
                     if (
-                        datetime.date(self.yearmonth.year, self.yearmonth.month, day)
+                        date(self.yearmonth.year, self.yearmonth.month, day)
                         == self.selected_date
                     ):
                         self.btn_days[idx].style = ft.ButtonStyle(
@@ -70,16 +71,14 @@ class DatePiker(ft.UserControl):
             self.update()
 
         def today_clicked(e):
-            self.yearmonth = datetime.date.today()
-            self.selected_date = datetime.date.today()
+            self.yearmonth = date.today()
+            self.selected_date = date.today()
             updateCalender()
             self.update()
 
         def day_clicked(e):
             day = e.control.text
-            self.selected_date = datetime.date(
-                self.yearmonth.year, self.yearmonth.month, day
-            )
+            self.selected_date = date(self.yearmonth.year, self.yearmonth.month, day)
             updateCalender()
             self.update()
             if self.on_selected:
@@ -166,17 +165,23 @@ class DatePiker(ft.UserControl):
         )
 
 
-class CardModal(ft.UserControl):
-    def __init__(self, calender_set):
+class CalendarModal(ft.UserControl):
+    def __init__(self, calender_set, dialog):
         super().__init__()
         self.datepicker = DatePiker(on_selected=self.date_selected)
         self.calender_set = calender_set
+        self.dialog = dialog
+
+    def open_dlg(self, e):
+        self.dialog = self.modal
+        self.modal.open = True
+        self.modal.update()
 
     def date_selected(self):
         self.calender_set.value = self.datepicker.selected_date.strftime("%Y/%m/%d")
+        self.modal.open = False
+        self.modal.update()
         self.calender_set.update()
-        self.open = False
-        self.update()
 
     def build(self):
         card = ft.Card(
@@ -187,41 +192,26 @@ class CardModal(ft.UserControl):
                 height=330,
             )
         )
-        self.result = ft.AlertDialog(
+        self.modal = ft.AlertDialog(
             modal=True,
             title=ft.Text("予定開始日を入力"),
             content=card,
             actions_alignment=ft.MainAxisAlignment.END,
             content_padding=ft.padding.only(50, 20, 50, 20),
         )
-        return self.result
-
-    @property
-    def open(self):
-        return self.result.open
-
-    @open.setter
-    def open(self, open):
-        self.result.open = open
+        return self.modal
 
 
 class Calendar(ft.UserControl):
-    def __init__(self, page: ft.Page):
+    def __init__(self, dialog):
         super().__init__()
-        self.page = page
-        self.card_modal = CardModal(self)
-        page.overlay.append(self.card_modal)
-
-    def open_dlg(self, e):
-        self.page.dialog = self.card_modal
-        self.card_modal.open = True
-        self.card_modal.update()
+        self.modal = CalendarModal(self, dialog)
 
     def build(self):
         self.tf_date = ft.TextField(width=300)
         btn_calender = ft.ElevatedButton(
             text="予定開始日",
-            on_click=self.open_dlg,
+            on_click=self.modal.open_dlg,
             width=200,
             height=50,
             icon="calendar_month",
@@ -247,26 +237,74 @@ class Calendar(ft.UserControl):
         self.tf_date.value = value
 
 
+class InputModal(ft.UserControl):
+    def __init__(self):
+        super().__init__()
+        self.column = []
+        self.content = []
+        self.alert = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("予定を入力"),
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        self.alert.actions = [
+            ft.TextButton("登録", on_click=self.register),
+            ft.TextButton("キャンセル", on_click=self.close_dlg),
+        ]
+
+    def close_dlg(self, e):
+        self.alert.open = False
+        self.alert.update()
+
+    def on_keyboard(self, e: ft.KeyboardEvent):
+        if e.key == "Escape":
+            self.close_dlg(e)
+
+    def register(self, e):
+        self.column[1] = ft.Text(f"{self.lecture_title.value}\n{self.place.value}")
+        self.content.update()
+        schedules[self.col0] = [self.lecture_title.value, self.place.value]
+        self.close_dlg(e)
+
+    def build(self):
+        return self.alert
+
+    def open(self):
+        self.col0 = self.column[0].value
+        self.lecture_title = ft.TextField(label="講義名", autofocus=True)
+        self.place = ft.TextField(label="場所")
+
+        self.alert.content = ft.Container(
+            content=ft.Column(
+                [
+                    ft.Text(
+                        f"{WEEKS[int(self.col0[0])]}曜{int(self.col0[1])+1}限", size=20
+                    ),
+                    self.lecture_title,
+                    self.place,
+                ]
+            ),
+            alignment=ft.alignment.center,
+            width=500,
+            height=500,
+        )
+
 
 class Timetable(ft.UserControl):
-    def __init__(self, page):
+    def __init__(self, dialog, on_keyboard_event):
         super().__init__()
-        self.page = page
-        self.dlg_modal = InputModal()
-        page.overlay.append(self.dlg_modal.alert)
+        self.dialog = dialog
+        self.on_keyboard_event = on_keyboard_event
+        self.modal = InputModal()
 
     def open_dlg_modal(self, e):
-        self.dlg_modal.column = e.control.content.controls
-        self.dlg_modal.content = e.control.content
-        self.dlg_modal.open()
-        self.open_dlg(self.dlg_modal.alert, self.dlg_modal.on_keyboard)
-
-    def open_dlg(self, dlg, on_keyboard=None):
-        if on_keyboard is not None:
-            self.page.on_keyboard_event = on_keyboard
-        self.page.dialog = dlg
-        dlg.open = True
-        self.page.update()
+        self.modal.column = e.control.content.controls
+        self.modal.content = e.control.content
+        self.modal.open()
+        self.on_keyboard_event = self.modal.on_keyboard
+        self.dialog = self.modal.alert
+        self.modal.alert.open = True
+        self.modal.alert.update()
 
     def build(self):
         def on_hover(e):
@@ -332,116 +370,31 @@ class Card(ft.UserControl):
         return self.card
 
 
-class InputModal(ft.UserControl):
-    def __init__(self):
-        super().__init__()
-        self.column = []
-        self.content = []
-        self.alert = ft.AlertDialog(
-            modal=True,
-            title=ft.Text("予定を入力"),
-            actions_alignment=ft.MainAxisAlignment.END,
-        )
-        self.alert.actions = [
-            ft.TextButton("登録", on_click=self.register),
-            ft.TextButton("キャンセル", on_click=self.close_dlg),
-        ]
-
-    def close_dlg(self, e):
-        self.alert.open = False
-        self.alert.update()
-
-    def on_keyboard(self, e: ft.KeyboardEvent):
-        if e.key == "Escape":
-            self.close_dlg(e)
-
-    def register(self, e):
-        self.column[1] = ft.Text(f"{self.lecture_title.value}\n{self.place.value}")
-        self.content.update()
-        schedules[self.col0] = [self.lecture_title.value, self.place.value]
-        self.close_dlg(e)
-
-    def build(self):
-        return self.alert
-
-    def open(self):
-        self.col0 = self.column[0].value
-        self.lecture_title = ft.TextField(label="講義名", autofocus=True)
-        self.place = ft.TextField(label="場所")
-
-        self.alert.content = ft.Container(
-            content=ft.Column(
-                [
-                    ft.Text(
-                        f"{WEEKS[int(self.col0[0])]}曜{int(self.col0[1])+1}限", size=20
-                    ),
-                    self.lecture_title,
-                    self.place,
-                ]
-            ),
-            alignment=ft.alignment.center,
-            width=500,
-            height=500,
-        )
-
-
 class RegisterModal(ft.UserControl):
-    def __init__(self, datepicker, gmail, credentials_path, page):
+    def __init__(self, register, close_dlg):
         super().__init__()
-        self.datepicker = datepicker
-        self.gmail = gmail
-        self.credentials_path = credentials_path
-        self.page = page
-        self.dlg_modal = ft.AlertDialog(
+        self.modal = ft.AlertDialog(
             modal=True,
             title=ft.Text("Googleカレンダーに登録"),
             actions=[
-                ft.TextButton("登録", on_click=self.register),
-                ft.TextButton("キャンセル", on_click=self.close_dlg),
+                ft.TextButton("登録", on_click=register),
+                ft.TextButton("キャンセル", on_click=close_dlg),
             ],
             actions_alignment=ft.MainAxisAlignment.END,
         )
-        page.overlay.append(self)
-
-    def open_dlg(self, dlg, on_keyboard=None):
-        if on_keyboard is not None:
-            self.page.on_keyboard_event = on_keyboard
-        self.page.dialog = dlg
-        dlg.open = True
-        self.page.update()
-
-    def close_dlg(self, e):
-        self.dlg_modal.open = False
-        self.update()
-
-    def register(self, e):
-        google_register.register(
-            schedules,
-            self.datepicker.selected_date,
-            self.gmail_value,
-            self.credentials_path_value,
-        )
-        self.close_dlg(e)
 
     def build(self):
-        return self.dlg_modal
-
-    def open(self, e):
-        self.gmail_value = self.gmail.value
-        self.credentials_path_value = self.credentials_path.value
-        self.dlg_modal.open = True
-        self.open_dlg(self.dlg_modal)
+        return self.modal
 
 
 class RegistrationButton(ft.UserControl):
-    def __init__(self, datepicker, setting_gmail, setting_credentials_path, page):
+    def __init__(self, datepicker, gmail, credentials_path, dialog):
         super().__init__()
-        self.register_modal = RegisterModal(
-            datepicker,
-            setting_gmail,
-            setting_credentials_path,
-            page,
-        )
+        self.register = RegisterModal(self.register_in_calendar, self.close_dlg)
+        self.datepicker = datepicker
+        self.gmail = gmail
+        self.credentials_path = credentials_path
+        self.dialog = dialog
 
     def build(self):
         return ft.Container(
@@ -450,7 +403,7 @@ class RegistrationButton(ft.UserControl):
                 height=50,
                 width=300,
                 icon="calendar_month",
-                on_click=self.register_modal.open,
+                on_click=self.open_dlg,
                 style=ft.ButtonStyle(
                     color={
                         ft.MaterialState.DEFAULT: ft.colors.WHITE,
@@ -464,3 +417,75 @@ class RegistrationButton(ft.UserControl):
             ),
             margin=30,
         )
+
+    def register_in_calendar(self, e):
+        self.register_(
+            schedules,
+            self.datepicker.selected_date,
+            self.gmail_value,
+            self.credentials_path_value,
+        )
+        self.close_dlg()
+
+    def open_dlg(self, e):
+        self.gmail_value = self.gmail.value
+        self.credentials_path_value = self.credentials_path.value
+
+        self.dialog = self.register.modal
+        self.register.modal.open = True
+        self.register.modal.update()
+
+    def close_dlg(self):
+        self.register.modal.open = False
+        self.register.modal.update()
+
+    def register_(self, schedules, date, calendar_id, credentials_path):
+        SCOPES = ["https://www.googleapis.com/auth/calendar"]
+        gapi_creds = google.auth.load_credentials_from_file(credentials_path, SCOPES)[0]
+        service = googleapiclient.discovery.build(
+            "calendar", "v3", credentials=gapi_creds, static_discovery=False
+        )
+
+        start_time = [
+            {"hour": 9, "minute": 10},
+            {"hour": 10, "minute": 50},
+            {"hour": 13, "minute": 15},
+            {"hour": 14, "minute": 55},
+            {"hour": 16, "minute": 35},
+        ]
+        end_time = [
+            {"hour": 10, "minute": 40},
+            {"hour": 12, "minute": 20},
+            {"hour": 14, "minute": 45},
+            {"hour": 16, "minute": 25},
+            {"hour": 18, "minute": 5},
+        ]
+        for key, value in schedules.items():
+            if (value[0] == "") and (value[1] == ""):
+                continue
+            date_delta = date + timedelta(days=int(key[0]))
+            time_idx = int(key[1])
+            start_date = datetime.combine(
+                date_delta,
+                time(start_time[time_idx]["hour"], start_time[time_idx]["minute"]),
+            )
+            end_date = datetime.combine(
+                date_delta,
+                time(end_time[time_idx]["hour"], end_time[time_idx]["minute"]),
+            )
+            event = {
+                "summary": value[0],
+                "start": {
+                    "dateTime": start_date.isoformat(),
+                    "timeZone": "Japan",
+                },
+                "end": {
+                    "dateTime": end_date.isoformat(),
+                    "timeZone": "Japan",
+                },
+                "location": value[1],
+                "recurrence": ["RRULE:FREQ=WEEKLY"],
+            }
+            event = (
+                service.events().insert(calendarId=calendar_id, body=event).execute()
+            )

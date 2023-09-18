@@ -13,33 +13,39 @@ def main(page: ft.Page):
     storage_data = get_client_storage(page, ["gmail", "credentials_path"])
 
     # 各部品の作成
-    setting_gmail = st.SettingGmail(storage_data["gmail"])
-    setting_credentials_path = st.SettingCredentialsPath(
-        storage_data["credentials_path"], page
-    )
+    gmail = st.SettingGmail(storage_data["gmail"])
+
+    credentials_path = st.SettingCredentialsPath(storage_data["credentials_path"])
+    page.overlay.append(credentials_path.file_dialog)
+
     setting_tab = st.SettingTab(
         [
-            setting_gmail,
-            setting_credentials_path,
+            gmail,
+            credentials_path,
         ],
         ["gmail", "credentials_path"],
-        page,
+        page.client_storage,
     )
 
-    calender_set = mt.Calendar(page)
-    timetable = mt.Timetable(page)
+    calender = mt.Calendar(page.dialog)
+    page.overlay.append(calender.modal)
+
+    timetable = mt.Timetable(page.dialog, page.on_keyboard_event)
+    page.overlay.append(timetable.modal.alert)
+
     registration_button = mt.RegistrationButton(
-        calender_set.card_modal.datepicker,
-        setting_gmail,
-        setting_credentials_path,
-        page,
+        calender.modal.datepicker,
+        gmail,
+        credentials_path,
+        page.dialog,
     )
+    page.overlay.append(registration_button.register)
 
     # 1つ目のタブを設定
     tab1 = ft.Tab(
         text="予定入力",
         content=ft.Column(
-            [calender_set, timetable, registration_button],
+            [calender, timetable, registration_button],
             scroll="AUTO",
             horizontal_alignment="CENTER",
         ),

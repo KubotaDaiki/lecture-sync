@@ -26,7 +26,7 @@ class SettingGmail(ft.UserControl):
 
 
 class SettingCredentialsPath(ft.UserControl):
-    def __init__(self, credentials_path, page):
+    def __init__(self, credentials_path):
         """設定タブの認証情報欄のためのコンポーネント
 
         Parameters
@@ -38,8 +38,7 @@ class SettingCredentialsPath(ft.UserControl):
         """
         super().__init__()
         self.selected_files = ft.TextField(label="認証情報", value=credentials_path)
-        self.pick_files_dialog = ft.FilePicker(on_result=self.pick_files_result)
-        page.overlay.append(self.pick_files_dialog)
+        self.file_dialog = ft.FilePicker(on_result=self.pick_files_result)
 
     def build(self):
         return ft.Column(
@@ -48,7 +47,7 @@ class SettingCredentialsPath(ft.UserControl):
                 ft.ElevatedButton(
                     "認証ファイルを選択",
                     icon=ft.icons.UPLOAD_FILE,
-                    on_click=lambda _: self.pick_files_dialog.pick_files(),
+                    on_click=lambda _: self.file_dialog.pick_files(),
                     height=40,
                     elevation=3,
                 ),
@@ -71,7 +70,7 @@ class SettingCredentialsPath(ft.UserControl):
 
 
 class SettingTab(ft.UserControl):
-    def __init__(self, setting_list: list, names: list, page: ft.Page):
+    def __init__(self, setting_list: list, names: list, client_storage: ft.Page):
         """設定タブコンポーネント
 
         Parameters
@@ -84,12 +83,12 @@ class SettingTab(ft.UserControl):
         super().__init__()
         self.setting_list = setting_list
         self.names = names
-        self.page = page
+        self.client_storage = client_storage
 
     def set_storage(self, e):
-        if self.page.client_storage is not None:
+        if self.client_storage is not None:
             for name, setting in zip(self.names, self.setting_list):
-                self.page.client_storage.set(name, setting.value)
+                self.client_storage.set(name, setting.value)
 
     def add_setting(self, e):
         self.button.text = "登録しました"
