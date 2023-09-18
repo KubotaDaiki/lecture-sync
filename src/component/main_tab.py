@@ -166,143 +166,107 @@ class DatePiker(ft.UserControl):
         )
 
 
-class SettingGmail(ft.UserControl):
-    def __init__(self, gmail: str):
-        """設定タブのGmail欄のコンポーネント
-
-        Parameters
-        ----------
-        gmail : str
-            ストレージに保存されているgmailアドレス
-        """
+class CardModal(ft.UserControl):
+    def __init__(self, calender_set):
         super().__init__()
-        self.gmail = ft.TextField(label="Gmail", value=gmail)
+        self.datepicker = DatePiker(on_selected=self.date_selected)
+        self.calender_set = calender_set
+
+    def date_selected(self):
+        self.calender_set.value = self.datepicker.selected_date.strftime("%Y/%m/%d")
+        self.calender_set.update()
+        self.open = False
+        self.update()
 
     def build(self):
-        return self.gmail
-
-    @property
-    def value(self):
-        return self.gmail.value
-
-    @value.setter
-    def value(self, value):
-        self.gmail.value = value
-
-
-class SettingCredentialsPath(ft.UserControl):
-    def __init__(self, credentials_path):
-        """設定タブの認証情報欄のためのコンポーネント
-
-        Parameters
-        ----------
-        credentials_path : str
-            認証情報が記述されているファイルのパス
-        on_click
-            コンポーネントのボタンをクリックした時実行する関数
-        """
-        super().__init__()
-        self.selected_files = ft.TextField(label="認証情報", value=credentials_path)
-        self.pick_files_dialog = ft.FilePicker(on_result=self.pick_files_result)
-
-    def build(self):
-        return ft.Column(
-            [
-                self.selected_files,
-                ft.ElevatedButton(
-                    "認証ファイルを選択",
-                    icon=ft.icons.UPLOAD_FILE,
-                    on_click=lambda _: self.pick_files_dialog.pick_files(),
-                    height=40,
-                    elevation=3,
-                ),
-            ]
+        card = ft.Card(
+            ft.Container(
+                self.datepicker,
+                margin=10,
+                width=300,
+                height=330,
+            )
         )
-
-    def pick_files_result(self, e: ft.FilePickerResultEvent):
-        if not e.files:
-            return
-        self.value = e.files[0].path
-        self.update()
+        self.result = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("予定開始日を入力"),
+            content=card,
+            actions_alignment=ft.MainAxisAlignment.END,
+            content_padding=ft.padding.only(50, 20, 50, 20),
+        )
+        return self.result
 
     @property
-    def value(self):
-        return self.selected_files.value
+    def open(self):
+        return self.result.open
 
-    @value.setter
-    def value(self, value):
-        self.selected_files.value = value
+    @open.setter
+    def open(self, open):
+        self.result.open = open
 
 
-class SettingTab(ft.UserControl):
-    def __init__(self, setting_list: list, set_storage):
-        """設定タブコンポーネント
-
-        Parameters
-        ----------
-        setting_list : list
-            設定タブに表示するコンポーネントのリスト
-        add_settings
-            設定を適用する時用の関数
-        """
+class Calendar(ft.UserControl):
+    def __init__(self, page: ft.Page):
         super().__init__()
-        self.setting_list = setting_list
-        self.set_storage = set_storage
+        self.page = page
+        self.card_modal = CardModal(self)
+        page.overlay.append(self.card_modal)
 
-    def add_setting(self, e):
-        self.button.text = "登録しました"
-        self.button.icon = "check"
-        self.update()
-        self.set_storage(e)
-
-    def default(self, e):
-        if e.data:
-            self.button.text = "情報を登録"
-            self.button.icon = "save"
-            self.update()
+    def open_dlg(self, e):
+        self.page.dialog = self.card_modal
+        self.card_modal.open = True
+        self.card_modal.update()
 
     def build(self):
-        self.setting_list = [
-            ft.Container(setting, margin=ft.margin.only(bottom=30))
-            for setting in self.setting_list
-        ]
-        self.button = ft.ElevatedButton(
-            "情報を登録",
-            icon="save",
-            on_click=self.add_setting,
-            on_hover=self.default,
-            height=50,
+        self.tf_date = ft.TextField(width=300)
+        btn_calender = ft.ElevatedButton(
+            text="予定開始日",
+            on_click=self.open_dlg,
             width=200,
-            style=ft.ButtonStyle(
-                color={
-                    ft.MaterialState.DEFAULT: ft.colors.WHITE,
-                },
-                bgcolor={
-                    ft.MaterialState.DEFAULT: ft.colors.BLUE_700,
-                    ft.MaterialState.HOVERED: ft.colors.BLUE_900,
-                },
-                shape=ft.RoundedRectangleBorder(radius=20),
+            height=50,
+            icon="calendar_month",
+        )
+
+        return ft.Container(
+            ft.Row(
+                [
+                    btn_calender,
+                    self.tf_date,
+                ],
+                alignment="CENTER",
             ),
+            margin=ft.margin.only(top=50, bottom=20),
         )
-        return ft.Column(
-            [
-                *self.setting_list,
-                self.button,
-            ]
-        )
+
+    @property
+    def value(self):
+        return self.tf_date.value
+
+    @value.setter
+    def value(self, value):
+        self.tf_date.value = value
+
 
 
 class Timetable(ft.UserControl):
-    def __init__(self, open_dlg_modal):
+    def __init__(self, page):
         super().__init__()
-        self.open_dlg = open_dlg_modal
+        self.page = page
         self.dlg_modal = InputModal()
+        page.overlay.append(self.dlg_modal.alert)
 
     def open_dlg_modal(self, e):
         self.dlg_modal.column = e.control.content.controls
         self.dlg_modal.content = e.control.content
         self.dlg_modal.open()
         self.open_dlg(self.dlg_modal.alert, self.dlg_modal.on_keyboard)
+
+    def open_dlg(self, dlg, on_keyboard=None):
+        if on_keyboard is not None:
+            self.page.on_keyboard_event = on_keyboard
+        self.page.dialog = dlg
+        dlg.open = True
+        self.page.update()
 
     def build(self):
         def on_hover(e):
@@ -422,12 +386,12 @@ class InputModal(ft.UserControl):
 
 
 class RegisterModal(ft.UserControl):
-    def __init__(self, datepicker, gmail, credentials_path, open_dlg):
+    def __init__(self, datepicker, gmail, credentials_path, page):
         super().__init__()
         self.datepicker = datepicker
         self.gmail = gmail
         self.credentials_path = credentials_path
-        self.open_dlg = open_dlg
+        self.page = page
         self.dlg_modal = ft.AlertDialog(
             modal=True,
             title=ft.Text("Googleカレンダーに登録"),
@@ -437,6 +401,14 @@ class RegisterModal(ft.UserControl):
             ],
             actions_alignment=ft.MainAxisAlignment.END,
         )
+        page.overlay.append(self)
+
+    def open_dlg(self, dlg, on_keyboard=None):
+        if on_keyboard is not None:
+            self.page.on_keyboard_event = on_keyboard
+        self.page.dialog = dlg
+        dlg.open = True
+        self.page.update()
 
     def close_dlg(self, e):
         self.dlg_modal.open = False
@@ -459,3 +431,36 @@ class RegisterModal(ft.UserControl):
         self.credentials_path_value = self.credentials_path.value
         self.dlg_modal.open = True
         self.open_dlg(self.dlg_modal)
+
+
+class RegistrationButton(ft.UserControl):
+    def __init__(self, datepicker, setting_gmail, setting_credentials_path, page):
+        super().__init__()
+        self.register_modal = RegisterModal(
+            datepicker,
+            setting_gmail,
+            setting_credentials_path,
+            page,
+        )
+
+    def build(self):
+        return ft.Container(
+            ft.ElevatedButton(
+                "Googleカレンダーに登録",
+                height=50,
+                width=300,
+                icon="calendar_month",
+                on_click=self.register_modal.open,
+                style=ft.ButtonStyle(
+                    color={
+                        ft.MaterialState.DEFAULT: ft.colors.WHITE,
+                    },
+                    bgcolor={
+                        ft.MaterialState.DEFAULT: ft.colors.BLUE_700,
+                        ft.MaterialState.HOVERED: ft.colors.BLUE_900,
+                    },
+                    shape=ft.RoundedRectangleBorder(radius=20),
+                ),
+            ),
+            margin=30,
+        )
