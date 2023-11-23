@@ -14,7 +14,16 @@ def get_client_storage(page: ft.Page, get_list: list):
 
 def set_client_storage(page: ft.Page, set_dict):
     if page.client_storage is None:
-        raise("client_storageがありません。")
+        raise ("client_storageがありません。")
 
     for key, value in set_dict.items():
         page.client_storage.set(key, value)
+
+
+def set_init_value_to_client_storage(page: ft.Page, init_values):
+    if page.client_storage is None:
+        return
+
+    for key, value in init_values.items():
+        if page.client_storage.get(key) is None:
+            page.client_storage.set(key, value)

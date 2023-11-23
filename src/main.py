@@ -1,8 +1,13 @@
+from certifi import contents
 import flet as ft
 from components.Button import Button, FilePickButton, DatePickButton
 from components.Timetable import Timetable
 from components.Modal import InputModal, Modal
-from utils import get_client_storage, set_client_storage
+from utils import (
+    get_client_storage,
+    set_client_storage,
+    set_init_value_to_client_storage,
+)
 import google.auth
 import googleapiclient.discovery
 from datetime import timedelta, datetime
@@ -12,8 +17,21 @@ def main(page: ft.Page):
     page.title = "Lecture Sync"
     page.theme_mode = "light"
     page.window_maximized = True
+    page.window_min_width = 500
 
-    storage_data = get_client_storage(page, ["gmail", "credentials_path"])
+    set_init_value_to_client_storage(
+        page,
+        {
+            "times": [
+                ["9:10", "10:40"],
+                ["10:50", "12:20"],
+                ["13:15", "14:45"],
+                ["14:55", "16:25"],
+                ["16:35", "18:05"],
+            ]
+        },
+    )
+    storage_data = get_client_storage(page, ["gmail", "credentials_path", "times"])
 
     page.add(
         ft.Tabs(
@@ -54,7 +72,10 @@ class MainTab(ft.UserControl):
             self.progress_bar.visible = True
             self.register_modal.update()
 
-            storage_data = get_client_storage(self.page, ["gmail", "credentials_path"])
+            storage_data = get_client_storage(
+                self.page,
+                ["gmail", "credentials_path", "times"],
+            )
 
             SCOPES = ["https://www.googleapis.com/auth/calendar"]
             gapi_creds = google.auth.load_credentials_from_file(
@@ -67,20 +88,20 @@ class MainTab(ft.UserControl):
                 static_discovery=False,
             )
 
-            start_times = ["9:10", "10:50", "13:15", "14:55", "16:35"]
-            end_times = ["10:40", "12:20", "14:45", "16:25", "18:05"]
             for key, input_data in self.schedules.items():
                 period_idx, week_idx = int(key[0]), int(key[1])
                 if (input_data["lecture_title"] == "") and (input_data["place"] == ""):
                     continue
 
                 date = self.tf_date.value + timedelta(days=week_idx)
-                start_date = datetime.combine(
-                    date, datetime.strptime(start_times[period_idx], "%H:%M").time()
-                )
-                end_date = datetime.combine(
-                    date, datetime.strptime(end_times[period_idx], "%H:%M").time()
-                )
+                start_time = datetime.strptime(
+                    storage_data["times"][period_idx][0], "%H:%M"
+                ).time()
+                start_date = datetime.combine(date, start_time)
+                end_time = datetime.strptime(
+                    storage_data["times"][period_idx][1], "%H:%M"
+                ).time()
+                end_date = datetime.combine(date, end_time)
                 event = {
                     "summary": input_data["lecture_title"],
                     "start": {
@@ -181,11 +202,16 @@ class SettingTab(ft.UserControl):
         if self.page is None:
             return
 
+        times = [
+            [t.controls[0].value, t.controls[1].value] for t in self.times.controls
+        ]
+
         set_client_storage(
             self.page,
             {
                 "gmail": self.gmail.value,
                 "credentials_path": self.credentials_path.value,
+                "times": times,
             },
         )
         self.page.snack_bar = ft.SnackBar(
@@ -202,14 +228,30 @@ class SettingTab(ft.UserControl):
         )
         self.gmail = ft.TextField(label="Gmail", value=self.storage_data["gmail"])
         self.button = Button("情報を登録", "save", self.add_setting)
+
+        self.times = ft.Column()
+        for i, (start, end) in enumerate(self.storage_data["times"]):
+            self.times.controls.append(
+                ft.Row(
+                    controls=[
+                        ft.TextField(label=f"{i+1}限 開始時刻", value=start),
+                        ft.TextField(label=f"{i+1}限 終了時刻", value=end),
+                    ],
+                )
+            )
+
         return ft.Container(
             ft.Column(
                 [
+                    ft.Text("Googleカレンダー用認証情報の設定", style=ft.TextThemeStyle.TITLE_LARGE),
                     self.gmail,
                     self.credentials_path,
+                    ft.Text("時刻の設定", style=ft.TextThemeStyle.TITLE_LARGE),
+                    self.times,
                     self.button,
                 ],
-                spacing=20,
+                spacing=30,
+                scroll="AUTO",
             ),
             margin=ft.margin.symmetric(vertical=40, horizontal=20),
         )
