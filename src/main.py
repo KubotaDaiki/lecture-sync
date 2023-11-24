@@ -200,6 +200,7 @@ class RegistrationButtonWithModal(ft.UserControl):
             )
 
     def close_modal(self, e):
+        self.progress_bar.visible = False
         self.register_modal.alert.open = False
         self.register_modal.update()
 
