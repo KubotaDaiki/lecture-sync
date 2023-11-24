@@ -37,3 +37,11 @@ class CardAction(ft.UserControl):
 
     def build(self):
         return self.card
+
+    @property
+    def content(self):
+        return self.card.content
+
+    @content.setter
+    def content(self, value):
+        self.card.content = value

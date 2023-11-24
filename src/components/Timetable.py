@@ -10,15 +10,17 @@ class Timetable(ft.UserControl):
         self.on_click = on_click
 
     def build(self):
-        timetable = ft.GridView(runs_count=8)
+        self.timetable = ft.GridView(runs_count=8)
 
         for week in self.WEEKS:
-            timetable.controls.append(Card(ft.Text(week, color=ft.colors.WHITE)))
+            self.timetable.controls.append(Card(ft.Text(week, color=ft.colors.WHITE)))
 
         for i in range(5):
-            timetable.controls.append(Card(ft.Text(f"{i+1}限", color=ft.colors.WHITE)))
+            self.timetable.controls.append(
+                Card(ft.Text(f"{i+1}限", color=ft.colors.WHITE))
+            )
             for j in range(7):
-                timetable.controls.append(
+                self.timetable.controls.append(
                     CardAction(
                         ft.Text(""),
                         on_click=self.on_click,
@@ -26,6 +28,14 @@ class Timetable(ft.UserControl):
                     )
                 )
         return ft.Container(
-            content=timetable,
+            content=self.timetable,
             width=1000,
         )
+
+    @property
+    def content(self):
+        return self.timetable.controls
+
+    @content.setter
+    def content(self, value):
+        self.timetable.controls = value

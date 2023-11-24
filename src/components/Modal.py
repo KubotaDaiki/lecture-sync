@@ -3,15 +3,12 @@ import flet as ft
 
 
 class Modal(ft.UserControl):
-    def __init__(self, contents, on_click, title=None):
+    def __init__(self, contents, on_click, close_modal, title=None):
         super().__init__()
         self.contents = contents
         self.on_click = on_click
         self.title_text = title
-
-    def close_modal(self, e):
-        self.alert.open = False
-        self.update()
+        self.close_modal = close_modal
 
     def _on_click(self, e):
         self.on_click()
@@ -53,11 +50,3 @@ class Modal(ft.UserControl):
     @open.setter
     def open(self, value):
         self.alert.open = value
-
-
-class InputModal(Modal):
-    def close_modal(self, e):
-        for content in self.contents:
-            content.value = ""
-        self.alert.open = False
-        self.update()
