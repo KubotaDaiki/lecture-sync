@@ -171,33 +171,50 @@ class RegistrationButtonWithModal(ft.UserControl):
             if (input_data["lecture_title"] == "") and (input_data["place"] == ""):
                 continue
 
-            date = self.tf_date.value + timedelta(days=week_idx)
-            start_time = datetime.strptime(
-                storage_data["times"][period_idx][0], "%H:%M"
-            ).time()
-            start_date = datetime.combine(date, start_time)
-            end_time = datetime.strptime(
-                storage_data["times"][period_idx][1], "%H:%M"
-            ).time()
-            end_date = datetime.combine(date, end_time)
-            event = {
-                "summary": input_data["lecture_title"],
-                "start": {
-                    "dateTime": start_date.isoformat(),
-                    "timeZone": "Japan",
-                },
-                "end": {
-                    "dateTime": end_date.isoformat(),
-                    "timeZone": "Japan",
-                },
-                "location": input_data["place"],
-                "recurrence": ["RRULE:FREQ=WEEKLY"],
-            }
-            event = (
-                service.events()
-                .insert(calendarId=storage_data["gmail"], body=event)
-                .execute()
-            )
+            try:
+                date = self.tf_date.value + timedelta(days=week_idx)
+                start_time = datetime.strptime(
+                    storage_data["times"][period_idx][0], "%H:%M"
+                ).time()
+                start_date = datetime.combine(date, start_time)
+                end_time = datetime.strptime(
+                    storage_data["times"][period_idx][1], "%H:%M"
+                ).time()
+                end_date = datetime.combine(date, end_time)
+                event = {
+                    "summary": input_data["lecture_title"],
+                    "start": {
+                        "dateTime": start_date.isoformat(),
+                        "timeZone": "Japan",
+                    },
+                    "end": {
+                        "dateTime": end_date.isoformat(),
+                        "timeZone": "Japan",
+                    },
+                    "location": input_data["place"],
+                    "recurrence": ["RRULE:FREQ=WEEKLY"],
+                }
+
+                event = (
+                    service.events()
+                    .insert(calendarId=storage_data["gmail"], body=event)
+                    .execute()
+                )
+            except Exception:
+                self.open_snack_bar(
+                    ft.Text("エラーが発生しました。登録した情報が正しいか確認してください", color=ft.colors.RED_400)
+                )
+            else:
+                self.open_snack_bar(ft.Text("登録完了しました"))
+
+    def open_snack_bar(self, text_content):
+        if self.page is None:
+            return
+        self.page.snack_bar = ft.SnackBar(
+            content=text_content,
+        )
+        self.page.snack_bar.open = True
+        self.page.update()
 
     def close_modal(self, e):
         self.progress_bar.visible = False
