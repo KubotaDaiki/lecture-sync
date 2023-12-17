@@ -4,3 +4,4 @@ credentials.json
 build
 dist
 LectureSync.spec
+__pycache__/
