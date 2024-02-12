@@ -128,10 +128,9 @@ export default function RegisterButton() {
           const calenderList = await getCalendarList(token)
           const AppCalender = calenderList.items.find(item => item.summary == AppName)
           if (AppCalender === undefined) {
-            createAppCalender(token)
-          } else {
-            createEvent(AppCalender.id, token)
+            await createAppCalender(token)
           }
+          await createEvent(AppCalender.id, token)
 
           setIsLoading(false)
           setOpen(false)
