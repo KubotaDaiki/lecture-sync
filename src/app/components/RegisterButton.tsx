@@ -1,6 +1,6 @@
 import Button from '@mui/material/Button';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
-import { useAtomValue } from 'jotai'
+import { useAtomValue, useAtom } from 'jotai'
 import { scheduleAtom, startDateAtom } from "@/app/atoms"
 import { useSession, useSupabaseClient } from "@supabase/auth-helpers-react";
 import { AppName } from "@/app/constant";
@@ -20,7 +20,7 @@ const times = [
 export default function RegisterButton() {
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const schedule = useAtomValue(scheduleAtom)
+  const [schedule, setSchedule] = useAtom(scheduleAtom)
   const startDate = useAtomValue(startDateAtom)
   const supabase = useSupabaseClient()
 
@@ -136,6 +136,7 @@ export default function RegisterButton() {
           const appCalender = await getAppCalender(token)
           await createEvent(appCalender.id, token)
 
+          setSchedule({})
           setIsLoading(false)
           setOpen(false)
         }

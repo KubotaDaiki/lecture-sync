@@ -53,7 +53,6 @@ export default function FormDialog({ open, handleClose, column, row }: Props) {
                             defaultValue={schedule[scheduleKey]?.title}
                         />
                         <TextField
-                            autoFocus
                             name="place"
                             label="場所"
                             fullWidth
