@@ -4,6 +4,7 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { jaJP } from '@mui/x-date-pickers/locales';
 import { jaJP as coreJaJP } from '@mui/material/locale';
 import { ReactNode } from 'react';
+import { Provider as JotaiProvider } from "jotai";
 
 const supabase = createClient(
     "https://nbaenehsinowupeeyhhl.supabase.co",
@@ -24,9 +25,11 @@ const theme = createTheme(
 export default function Provider({ children }: { children: ReactNode }) {
     return (
         <ThemeProvider theme={theme}>
-            <SessionContextProvider supabaseClient={supabase}>
-                {children}
-            </SessionContextProvider>
+            <JotaiProvider>
+                <SessionContextProvider supabaseClient={supabase}>
+                    {children}
+                </SessionContextProvider>
+            </JotaiProvider>
         </ThemeProvider>
     )
 }
