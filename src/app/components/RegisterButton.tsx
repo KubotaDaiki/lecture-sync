@@ -2,11 +2,12 @@ import Button from '@mui/material/Button';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
 import { useAtomValue } from 'jotai'
 import { scheduleAtom, startDateAtom } from "@/app/atoms"
-import { useSession } from "@supabase/auth-helpers-react";
+import { useSession, useSupabaseClient } from "@supabase/auth-helpers-react";
 import { AppName } from "@/app/constant";
 import dayjs from 'dayjs';
 import { useState } from "react";
 import RegisterDialog from "@/app/components/RegisterDIalog"
+import Cookies from 'js-cookie';
 
 const times = [
   [dayjs("2021-01-01 09:10:00"), dayjs("2021-01-01 10:40:00")],
@@ -19,24 +20,20 @@ const times = [
 export default function RegisterButton() {
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const session = useSession()!;
   const schedule = useAtomValue(scheduleAtom)
   const startDate = useAtomValue(startDateAtom)
+  const supabase = useSupabaseClient()
 
   async function getToken() {
-    const response = await fetch(
-      "https://www.googleapis.com/oauth2/v4/token",
+    const { data, error } = await supabase.functions.invoke(
+      'refreshGoogleToken',
       {
-        method: "POST",
-        body: JSON.stringify({
-          refresh_token: session.provider_refresh_token,
-          client_id: process.env.NEXT_PUBLIC_CLIENT_ID,
-          client_secret: process.env.NEXT_PUBLIC_CLIENT_SECRET,
-          grant_type: "refresh_token"
-        }),
+        method: 'POST',
+        body: {
+          providerRefreshToken: Cookies.get("oauth_provider_refresh_token"),
+        },
       }
     )
-    const data = await response.json()
     return data.access_token
   }
 

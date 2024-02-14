@@ -6,12 +6,28 @@ import {
     useSupabaseClient,
     useSessionContext,
 } from "@supabase/auth-helpers-react";
+import Cookies from 'js-cookie';
+import { useEffect } from 'react';
 
 
 export default function GoogleButton() {
     const user = useSession()?.user;
-
     const { isLoading } = useSessionContext();
+    const supabase = useSupabaseClient();
+
+    useEffect(() => {
+        supabase.auth.onAuthStateChange(async (event, session) => {
+            if (session && session.provider_refresh_token) {
+                Cookies.set('oauth_provider_refresh_token', session.provider_refresh_token);
+            }
+
+            if (event === 'SIGNED_OUT') {
+                await fetch(`https://accounts.google.com/o/oauth2/revoke?token=${Cookies.get("oauth_provider_refresh_token")}`)
+                Cookies.remove('oauth_provider_refresh_token');
+            }
+        });
+
+    }, [])
 
     if (isLoading) {
         return <></>
@@ -32,6 +48,7 @@ const LoginButton = () => {
         const { error } = await supabase.auth.signInWithOAuth({
             provider: "google",
             options: {
+                redirectTo: process.env.NEXT_PUBLIC_CLIENT_REDIRECT_URL,
                 queryParams: { access_type: 'offline', prompt: 'consent', },
                 scopes:
                     "https://www.googleapis.com/auth/calendar.calendarlist.readonly https://www.googleapis.com/auth/calendar.app.created",
