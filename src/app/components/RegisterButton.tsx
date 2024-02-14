@@ -8,6 +8,8 @@ import dayjs from 'dayjs';
 import { useState } from "react";
 import RegisterDialog from "@/app/components/RegisterDIalog"
 import Cookies from 'js-cookie';
+import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
 
 const times = [
   [dayjs("2021-01-01 09:10:00"), dayjs("2021-01-01 10:40:00")],
@@ -18,7 +20,8 @@ const times = [
 ]
 
 export default function RegisterButton() {
-  const [open, setOpen] = useState(false)
+  const [openDialog, setOpenDialog] = useState(false)
+  const [openSnackbar, setOpenSnackbar] = useState(false);
   const [isLoading, setIsLoading] = useState(false)
   const [schedule, setSchedule] = useAtom(scheduleAtom)
   const startDate = useAtomValue(startDateAtom)
@@ -120,15 +123,21 @@ export default function RegisterButton() {
         variant="contained"
         startIcon={<CalendarMonthIcon />}
         size="large"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          if (Cookies.get("oauth_provider_refresh_token") === undefined) {
+            setOpenSnackbar(true)
+          } else {
+            setOpenDialog(true)
+          }
+        }}
         sx={{ borderRadius: '35px' }}
       >
         カレンダーに登録
       </Button>
       <RegisterDialog
-        open={open}
+        open={openDialog}
         isLoading={isLoading}
-        handleCancel={() => setOpen(false)}
+        handleCancel={() => setOpenDialog(false)}
         handleOK={async () => {
           setIsLoading(true)
 
@@ -138,11 +147,32 @@ export default function RegisterButton() {
 
           setSchedule({})
           setIsLoading(false)
-          setOpen(false)
+          setOpenDialog(false)
         }
         }>
       </RegisterDialog>
+      <GoogleErrorSnackbar open={openSnackbar} setOpen={setOpenSnackbar} />
     </>
   )
 }
 
+function GoogleErrorSnackbar({ open, setOpen }) {
+  const handleClose = (event?: React.SyntheticEvent | Event, reason?: string) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+
+    setOpen(false);
+  };
+
+  return (
+    <Snackbar open={open} autoHideDuration={6000} onClose={handleClose}>
+      <Alert
+        onClose={handleClose}
+        severity="error"
+      >
+        Google連携がされていないため登録できません。
+      </Alert>
+    </Snackbar>
+  );
+}
