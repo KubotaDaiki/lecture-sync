@@ -51,7 +51,7 @@ export default function RegisterButton() {
   }
 
   async function createAppCalender(token: string) {
-    await fetch(
+    const response = await fetch(
       "https://www.googleapis.com/calendar/v3/calendars",
       {
         method: "POST",
@@ -63,6 +63,7 @@ export default function RegisterButton() {
         }),
       }
     )
+    return await response.json()
   }
 
   async function createEvent(calenderId: string, token: string) {
@@ -102,6 +103,16 @@ export default function RegisterButton() {
     );
   }
 
+  async function getAppCalender(token: string) {
+    const calenderList = await getCalendarList(token)
+    const appCalender = calenderList.items.find(item => item.summary == AppName)
+    if (appCalender === undefined) {
+      return await createAppCalender(token)
+    } else {
+      return appCalender
+    }
+  }
+
 
   return (
     <>
@@ -122,12 +133,8 @@ export default function RegisterButton() {
           setIsLoading(true)
 
           const token = await getToken()
-          const calenderList = await getCalendarList(token)
-          const AppCalender = calenderList.items.find(item => item.summary == AppName)
-          if (AppCalender === undefined) {
-            await createAppCalender(token)
-          }
-          await createEvent(AppCalender.id, token)
+          const appCalender = await getAppCalender(token)
+          await createEvent(appCalender.id, token)
 
           setIsLoading(false)
           setOpen(false)
